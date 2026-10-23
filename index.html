@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Earshot – Guess the song from a split second</title>
+  <meta name="description" content="Earshot plays 0.1 seconds of a song. Guess it, or hear a little more. Genre tracks, three difficulties and a Mixer that climbs from easy to hard.">
+  <meta name="theme-color" content="#0e0f13">
+  <meta property="og:title" content="Earshot – Guess the song from a split second">
+  <meta property="og:description" content="0.1 seconds of audio. Every miss unlocks a little more. How fast can you name the song?">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0f13'/%3E%3Cg fill='%23ff5d73'%3E%3Crect x='10' y='26' width='6' height='12' rx='3'/%3E%3Crect x='21' y='18' width='6' height='28' rx='3'/%3E%3Crect x='32' y='10' width='6' height='44' rx='3'/%3E%3Crect x='43' y='22' width='6' height='20' rx='3'/%3E%3C/g%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <header class="top">
+    <a class="brand" href="./" aria-label="Earshot home">
+      <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><g fill="currentColor"><rect x="10" y="26" width="6" height="12" rx="3"/><rect x="21" y="18" width="6" height="28" rx="3"/><rect x="32" y="10" width="6" height="44" rx="3"/><rect x="43" y="22" width="6" height="20" rx="3"/></g></svg>
+      Earshot
+    </a>
+    <button id="home-btn" class="ghost" type="button" hidden>← Tracks</button>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <!-- Track picker -->
+    <section id="view-home" aria-labelledby="home-title">
+      <h1 id="home-title">Name that song<br>in a <em>split second</em>.</h1>
+      <p class="lede">You hear 0.1 seconds. Miss, and you hear a bit more. Seven clips, then the answer is revealed.</p>
+      <div id="tracks" class="grid" role="list"></div>
+      <p class="fine">Song previews come from the iTunes Search API. Nothing is stored except your best scores, in this browser.</p>
+    </section>
+
+    <!-- Game -->
+    <section id="view-game" hidden aria-labelledby="game-title">
+      <div class="game-head">
+        <div>
+          <h2 id="game-title"></h2>
+          <p id="round-label" class="muted"></p>
+        </div>
+        <p class="score">Score <strong id="score">0</strong></p>
+      </div>
+
+      <ol id="ladder" class="ladder" aria-label="Clip lengths"></ol>
+
+      <div class="player">
+        <button id="play" class="play" type="button" aria-label="Play clip" disabled>
+          <svg class="i-play" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
+          <span class="spinner" aria-hidden="true"></span>
+        </button>
+        <div class="bar" aria-hidden="true"><i id="bar-fill"></i></div>
+      </div>
+      <p id="status" class="status" role="status" aria-live="polite">Loading…</p>
+
+      <form id="guess-form" autocomplete="off">
+        <label for="guess">Your guess</label>
+        <div class="row">
+          <input id="guess" list="song-list" placeholder="Type a title, then pick it" spellcheck="false" disabled>
+          <button id="guess-btn" class="primary" type="submit" disabled>Guess</button>
+        </div>
+        <button id="skip" class="ghost" type="button" disabled>Skip</button>
+        <datalist id="song-list"></datalist>
+      </form>
+
+      <div id="error" class="error" role="alert" hidden>
+        <p id="error-msg"></p>
+        <button id="retry" class="primary" type="button">Retry</button>
+      </div>
+
+      <article id="reveal" class="reveal" hidden>
+        <img id="art" alt="" width="120" height="120">
+        <div>
+          <p id="reveal-verdict" class="verdict"></p>
+          <p id="reveal-title" class="reveal-title"></p>
+          <p id="reveal-artist" class="muted"></p>
+          <audio id="full" controls preload="none" aria-label="Full 30 second preview"></audio>
+          <p><a id="reveal-link" href="#" target="_blank" rel="noopener noreferrer">Open in Apple Music ↗</a></p>
+        </div>
+        <button id="next" class="primary" type="button">Next song →</button>
+      </article>
+
+      <h3 class="rounds-title">Rounds</h3>
+      <ol id="rounds" class="rounds"></ol>
+    </section>
+
+    <!-- Results -->
+    <section id="view-results" hidden aria-labelledby="results-title">
+      <h2 id="results-title">Final score</h2>
+      <p class="big"><span id="final-score">0</span> <small>/ <span id="final-max">0</span></small></p>
+      <p id="final-note" class="lede"></p>
+      <ol id="results-rounds" class="rounds"></ol>
+      <div class="row">
+        <button id="again" class="primary" type="button">Play again</button>
+        <button id="back" class="ghost" type="button">All tracks</button>
+      </div>
+    </section>
+  </main>
+
+  <noscript><p class="fine">Earshot needs JavaScript to play audio.</p></noscript>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

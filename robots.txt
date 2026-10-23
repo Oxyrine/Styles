@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://earshot-zeta.vercel.app/sitemap.xml
