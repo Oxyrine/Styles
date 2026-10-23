@@ -1,61 +1,44 @@
-// Curated pools. Difficulty = how well known the songs are.
-// Titles are matched against the iTunes catalogue, so keep them as the store spells them.
+// Tracks are lists of artists, not songs: every round draws from that artist's whole iTunes catalogue.
+// Difficulty is how deep into an artist's catalogue we dip (see DEPTH in game.js) and how mainstream the artists are.
 export const TRACKS = [
-  { id: 'pop', name: 'Pop Hits', genre: 'Pop', difficulty: 'easy', songs: [
-    ['Blinding Lights', 'The Weeknd'], ['Shape of You', 'Ed Sheeran'], ['bad guy', 'Billie Eilish'],
-    ['Levitating', 'Dua Lipa'], ['Shake It Off', 'Taylor Swift'], ['Uptown Funk', 'Mark Ronson'],
-    ['Rolling in the Deep', 'Adele'], ['Happy', 'Pharrell Williams'], ['Firework', 'Katy Perry'],
-    ['STAY', 'The Kid LAROI'], ['Dance Monkey', 'Tones and I'], ['Someone Like You', 'Adele'],
-    ['Peaches', 'Justin Bieber'], ['As It Was', 'Harry Styles'], ['Flowers', 'Miley Cyrus'],
-    ['Cruel Summer', 'Taylor Swift'], ['Bad Romance', 'Lady Gaga'], ['Roar', 'Katy Perry'],
+  { id: 'pop', name: 'Pop Hits', genre: 'Pop', difficulty: 'easy', artists: [
+    'Taylor Swift', 'Ed Sheeran', 'Adele', 'Dua Lipa', 'Ariana Grande', 'Justin Bieber', 'Katy Perry', 'Bruno Mars',
+    'Billie Eilish', 'The Weeknd', 'Harry Styles', 'Rihanna', 'Lady Gaga', 'Shawn Mendes', 'Miley Cyrus', 'Selena Gomez',
+    'Olivia Rodrigo', 'Sia', 'Charlie Puth', 'Sabrina Carpenter', 'Britney Spears', 'Beyoncé', 'Camila Cabello', 'Demi Lovato', 'Lizzo',
   ]},
-  { id: 'bollywood', name: 'Bollywood Blockbusters', genre: 'Bollywood', difficulty: 'easy', songs: [
-    ['Tum Hi Ho', 'Arijit Singh'], ['Kala Chashma', 'Badshah'], ['Chaiyya Chaiyya', 'Sukhwinder Singh'],
-    ['Kal Ho Naa Ho', 'Sonu Nigam'], ['Kabira', 'Tochi Raina'], ['Gerua', 'Arijit Singh'],
-    ['Channa Mereya', 'Arijit Singh'], ['Badtameez Dil', 'Benny Dayal'], ['Ghungroo', 'Arijit Singh'],
-    ['Apna Time Aayega', 'Ranveer Singh'], ['Kesariya', 'Arijit Singh'], ['Jai Ho', 'A. R. Rahman'],
-    ['Zinda', 'Siddharth Mahadevan'], ['Senorita', 'Farhan Akhtar'], ['Dil Diyan Gallan', 'Atif Aslam'],
-    ['Kar Gayi Chull', 'Badshah'], ['Raabta', 'Arijit Singh'], ['Ae Dil Hai Mushkil', 'Arijit Singh'],
+  { id: 'bollywood', name: 'Bollywood Blockbusters', genre: 'Bollywood', difficulty: 'easy', artists: [
+    'Arijit Singh', 'Atif Aslam', 'Shreya Ghoshal', 'Sonu Nigam', 'Badshah', 'Neha Kakkar', 'A. R. Rahman', 'Kishore Kumar',
+    'Lata Mangeshkar', 'Mohammed Rafi', 'Armaan Malik', 'Jubin Nautiyal', 'Sunidhi Chauhan', 'Yo Yo Honey Singh', 'Pritam',
+    'Vishal-Shekhar', 'Shankar-Ehsaan-Loy', 'Diljit Dosanjh', 'Darshan Raval', 'B Praak', 'Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Mika Singh', 'Sachin-Jigar',
   ]},
-  { id: 'rock', name: 'Rock Classics', genre: 'Rock', difficulty: 'medium', songs: [
-    ['Bohemian Rhapsody', 'Queen'], ['Hotel California', 'Eagles'], ["Sweet Child O' Mine", "Guns N' Roses"],
-    ['Smells Like Teen Spirit', 'Nirvana'], ['Back In Black', 'AC/DC'], ['Stairway to Heaven', 'Led Zeppelin'],
-    ["Don't Stop Believin'", 'Journey'], ["Livin' on a Prayer", 'Bon Jovi'], ['Crazy Train', 'Ozzy Osbourne'],
-    ['Wish You Were Here', 'Pink Floyd'], ['Under the Bridge', 'Red Hot Chili Peppers'], ['Enter Sandman', 'Metallica'],
-    ['Paint It Black', 'The Rolling Stones'], ['Purple Haze', 'Jimi Hendrix'], ['Born to Run', 'Bruce Springsteen'],
-    ['With or Without You', 'U2'], ['Black Dog', 'Led Zeppelin'], ['Whole Lotta Love', 'Led Zeppelin'],
+  { id: 'rock', name: 'Rock Classics', genre: 'Rock', difficulty: 'medium', artists: [
+    'Queen', 'Led Zeppelin', 'Pink Floyd', 'The Beatles', 'The Rolling Stones', 'AC/DC', 'Nirvana', "Guns N' Roses", 'Metallica',
+    'Aerosmith', 'U2', 'Foo Fighters', 'Red Hot Chili Peppers', 'Eagles', 'Bon Jovi', 'Fleetwood Mac', 'Deep Purple', 'The Who',
+    'Black Sabbath', 'Van Halen', 'Green Day', 'Radiohead', 'Linkin Park', 'Pearl Jam', 'The Doors', 'Journey', 'Dire Straits',
+    'Creedence Clearwater Revival', 'Def Leppard',
   ]},
-  { id: 'hiphop', name: 'Hip-Hop', genre: 'Hip-Hop', difficulty: 'medium', songs: [
-    ['Lose Yourself', 'Eminem'], ['SICKO MODE', 'Travis Scott'], ['HUMBLE.', 'Kendrick Lamar'],
-    ['In Da Club', '50 Cent'], ['Juicy', 'The Notorious B.I.G.'], ['Empire State of Mind', 'JAY-Z'],
-    ["God's Plan", 'Drake'], ['Gold Digger', 'Kanye West'], ['Hotline Bling', 'Drake'],
-    ['Stan', 'Eminem'], ['California Love', '2Pac'], ['Mask Off', 'Future'],
-    ['Alright', 'Kendrick Lamar'], ['rockstar', 'Post Malone'], ['Lucid Dreams', 'Juice WRLD'],
-    ['Money Trees', 'Kendrick Lamar'], ['Still D.R.E.', 'Dr. Dre'], ['Mo Bamba', 'Sheck Wes'],
+  { id: 'hiphop', name: 'Hip-Hop', genre: 'Hip-Hop', difficulty: 'medium', artists: [
+    'Eminem', 'Kendrick Lamar', 'Drake', 'Kanye West', 'JAY-Z', '50 Cent', 'Travis Scott', 'Post Malone', 'Nas', 'Snoop Dogg',
+    'Dr. Dre', '2Pac', 'The Notorious B.I.G.', 'J. Cole', 'Lil Wayne', 'Future', 'Cardi B', 'Nicki Minaj', 'Tyler, The Creator',
+    'OutKast', 'Run-D.M.C.', 'Wu-Tang Clan', 'Juice WRLD', 'Lil Uzi Vert', 'Migos', 'Megan Thee Stallion', 'Ice Cube', 'Public Enemy',
   ]},
-  { id: '2000s', name: '2000s Throwbacks', genre: '2000s', difficulty: 'medium', songs: [
-    ['Mr. Brightside', 'The Killers'], ['Crazy in Love', 'Beyoncé'], ['Hey Ya!', 'OutKast'],
-    ['Umbrella', 'Rihanna'], ['Yeah!', 'Usher'], ['Toxic', 'Britney Spears'],
-    ['Seven Nation Army', 'The White Stripes'], ['Boulevard of Broken Dreams', 'Green Day'], ["Hips Don't Lie", 'Shakira'],
-    ['Complicated', 'Avril Lavigne'], ['Clocks', 'Coldplay'], ['Since U Been Gone', 'Kelly Clarkson'],
-    ['Lose Control', 'Missy Elliott'], ['American Idiot', 'Green Day'], ['Float On', 'Modest Mouse'],
-    ['Take Me Out', 'Franz Ferdinand'], ['Dani California', 'Red Hot Chili Peppers'], ['Bring Me to Life', 'Evanescence'],
+  { id: '2000s', name: '2000s Throwbacks', genre: '2000s', difficulty: 'medium', artists: [
+    'Britney Spears', 'Usher', 'OutKast', 'The Killers', 'Green Day', 'Avril Lavigne', 'Kelly Clarkson', 'Black Eyed Peas',
+    'Maroon 5', 'Coldplay', 'Shakira', 'Linkin Park', 'Evanescence', 'Nelly', 'Gwen Stefani', "Destiny's Child", 'Christina Aguilera',
+    '*NSYNC', 'Backstreet Boys', 'Fall Out Boy', 'My Chemical Romance', 'Panic! At the Disco', 'The White Stripes', 'Franz Ferdinand',
+    'Justin Timberlake', 'Akon', 'Sean Paul', 'Missy Elliott', 'Alicia Keys',
   ]},
-  { id: 'indie', name: 'Indie & Alt Deep Cuts', genre: 'Indie', difficulty: 'hard', songs: [
-    ['Do I Wanna Know?', 'Arctic Monkeys'], ['Electric Feel', 'MGMT'], ['Pumped Up Kicks', 'Foster The People'],
-    ['Kids', 'MGMT'], ['Skinny Love', 'Bon Iver'], ['Ho Hey', 'The Lumineers'],
-    ['Little Talks', 'Of Monsters and Men'], ['Such Great Heights', 'The Postal Service'], ['Cigarette Daydreams', 'Cage The Elephant'],
-    ['Heat Waves', 'Glass Animals'], ['Take Me to Church', 'Hozier'], ['Reptilia', 'The Strokes'],
-    ['Last Nite', 'The Strokes'], ['Sleepyhead', 'Passion Pit'], ['Dog Days Are Over', 'Florence + The Machine'],
-    ['Ain\'t No Rest for the Wicked', 'Cage The Elephant'], ['Tongue Tied', 'Grouplove'], ['Myth', 'Beach House'],
+  { id: 'indie', name: 'Indie & Alt Deep Cuts', genre: 'Indie', difficulty: 'hard', artists: [
+    'Arctic Monkeys', 'MGMT', 'Foster The People', 'Bon Iver', 'The Lumineers', 'Of Monsters and Men', 'The Postal Service',
+    'Cage The Elephant', 'Glass Animals', 'Hozier', 'The Strokes', 'Passion Pit', 'Florence + The Machine', 'Grouplove', 'Beach House',
+    'Tame Impala', 'Vampire Weekend', 'The National', 'Death Cab for Cutie', 'Modest Mouse', 'Mac DeMarco', 'alt-J', 'Phoebe Bridgers',
+    'Mitski', 'The 1975', 'Sufjan Stevens', 'Fleet Foxes', 'Cigarettes After Sex', 'Spoon',
   ]},
-  { id: 'electronic', name: 'Electronic', genre: 'Electronic', difficulty: 'hard', songs: [
-    ['Around the World', 'Daft Punk'], ['One More Time', 'Daft Punk'], ['Strobe', 'deadmau5'],
-    ['Titanium', 'David Guetta'], ['Levels', 'Avicii'], ['Wake Me Up', 'Avicii'],
-    ['Clarity', 'Zedd'], ['Scary Monsters and Nice Sprites', 'Skrillex'], ['Animals', 'Martin Garrix'],
-    ["Don't You Worry Child", 'Swedish House Mafia'], ['Sandstorm', 'Darude'], ['Firestone', 'Kygo'],
-    ['Lean On', 'Major Lazer'], ['Satisfaction', 'Benny Benassi'], ['Language', 'Porter Robinson'],
-    ['Opus', 'Eric Prydz'], ['Greyhound', 'Swedish House Mafia'], ['Alone', 'Marshmello'],
+  { id: 'electronic', name: 'Electronic', genre: 'Electronic', difficulty: 'hard', artists: [
+    'Daft Punk', 'deadmau5', 'David Guetta', 'Avicii', 'Zedd', 'Skrillex', 'Martin Garrix', 'Swedish House Mafia', 'Kygo',
+    'Major Lazer', 'Porter Robinson', 'Eric Prydz', 'Marshmello', 'Calvin Harris', 'Tiësto', 'Armin van Buuren', 'The Chemical Brothers',
+    'Disclosure', 'Flume', 'ODESZA', 'Diplo', 'Alesso', 'Hardwell', 'Afrojack', 'Kaskade', 'Above & Beyond', 'Fatboy Slim', 'Justice',
+    'RÜFÜS DU SOL',
   ]},
 ];
 

@@ -1,10 +1,12 @@
 import { TRACKS } from './songs.js';
-import { LADDER, norm, isCorrect, pickResult, buildRounds, buildMixer, alternates, score, firstLoud } from './game.js';
+import { LADDER, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, alternates, score, firstLoud, shuffle } from './game.js';
 
 const $ = (id) => document.getElementById(id);
 const MIXER = { id: 'mixer', name: 'The Mixer', genre: 'All genres', difficulty: 'mix' };
-const key = (s) => `${s.title}|${s.artist}`;
+// ponytail: fixed storefront; the India store carried the same or more songs than the US one in every artist tried. Make it a setting if a region's catalogue matters.
+const STORE = 'IN';
 const fmt = (s) => `${s}s`;
+const option = (value) => Object.assign(document.createElement('option'), { value });
 
 class NotFound extends Error {}
 
@@ -18,19 +20,24 @@ const getBest = (id) => { try { return +localStorage.getItem(`earshot:best:${id}
 const setBest = (id, v) => { try { localStorage.setItem(`earshot:best:${id}`, v); } catch { /* private mode */ } };
 
 // ---------- iTunes ----------
-async function lookup(song) {
-  const q = encodeURIComponent(`${song.title} ${song.artist}`);
-  const res = await fetch(`https://itunes.apple.com/search?term=${q}&entity=song&limit=15`);
+async function itunes(term, { limit = 50, attribute, signal } = {}) {
+  const p = new URLSearchParams({ term, entity: 'song', limit, country: STORE });
+  if (attribute) p.set('attribute', attribute);
+  const res = await fetch(`https://itunes.apple.com/search?${p}`, { signal });
   if (!res.ok) throw new Error(`iTunes search failed (${res.status})`);
-  const hit = pickResult((await res.json()).results, song.title, song.artist);
-  if (!hit) throw new NotFound(song.title);
-  return {
-    previewUrl: hit.previewUrl,
-    art: hit.artworkUrl100.replace('100x100', '300x300'),
-    link: hit.trackViewUrl,
-    title: hit.trackName,
-    artist: hit.artistName,
-  };
+  return (await res.json()).results;
+}
+
+// An artist's songs, most popular first. Cached so repeat rounds and the artist box don't re-hit iTunes (~20 req/min limit).
+const pools = new Map();
+function pool(artist, limit = 50) {
+  const k = `${norm(artist)}:${limit}`;
+  if (!pools.has(k)) {
+    const p = itunes(artist, { limit, attribute: 'artistTerm' });
+    p.catch(() => pools.delete(k));
+    pools.set(k, p);
+  }
+  return pools.get(k);
 }
 
 async function decode(url) {
@@ -42,26 +49,32 @@ async function decode(url) {
   return buf;
 }
 
-// Resolve round i to a playable song. Songs iTunes can't serve are swapped for an unused one of the same difficulty.
+// Turn round i's slot (an artist) into a playable song. Artists with nothing playable are swapped for another of the same difficulty.
 function prepare(i) {
-  const my = g, r = g.rounds[i];
+  const my = g, r = my.rounds[i];
   if (r.promise) return r.promise;
   r.promise = (async () => {
-    let candidates = [r.song];
-    for (let tries = 0; ; tries++) {
-      const song = candidates.shift();
-      try {
-        r.meta = await lookup(song);
-        r.buffer = await decode(r.meta.previewUrl);
-        r.song = song;
-        my.used.add(key(song));
+    let slot = r.slot;
+    for (let swaps = 0; ; swaps++) {
+      const results = await pool(slot.artist, my.custom ? 100 : 50);
+      const fresh = shuffle(cleanPool(results, slot.artist, slot.difficulty).filter((x) => !my.usedIds.has(x.trackId)));
+      let err;
+      for (const hit of fresh.slice(0, 3)) {
+        try {
+          r.buffer = await decode(hit.previewUrl);
+        } catch (e) { err = e; continue; }
+        my.usedIds.add(hit.trackId);
+        r.slot = slot;
+        r.song = { title: hit.trackName, artist: hit.artistName };
+        r.meta = { previewUrl: hit.previewUrl, art: hit.artworkUrl100.replace('100x100', '300x300'), link: hit.trackViewUrl, title: hit.trackName, artist: hit.artistName };
         r.offset = firstLoud(r.buffer.getChannelData(0), r.buffer.sampleRate);
         return r;
-      } catch (e) {
-        if (!(e instanceof NotFound) || tries >= 6) throw e;
-        if (!candidates.length) candidates = alternates(TRACKS, song, my.used);
-        my.used.add(key(song));
       }
+      if (fresh.length) throw err; // there were songs, but every download failed: a network problem
+      if (my.custom || swaps >= 6) throw new NotFound(slot.artist);
+      my.usedArtists.add(norm(slot.artist));
+      slot = alternates(TRACKS, slot, my.usedArtists)[0];
+      if (!slot) throw new NotFound();
     }
   })();
   r.promise.catch(() => { r.promise = null; }); // allow Retry
@@ -90,7 +103,7 @@ function renderHome() {
     });
     const name = Object.assign(document.createElement('strong'), { textContent: t.name });
     const meta = Object.assign(document.createElement('small'), {
-      textContent: (t === MIXER ? '12 rounds, every genre' : `${t.genre}, 8 rounds`) + (getBest(t.id) ? ` · best ${getBest(t.id)}` : ''),
+      textContent: (t === MIXER ? '12 rounds, every genre' : `${t.artists.length} artists, every song they have`) + (getBest(t.id) ? ` · best ${getBest(t.id)}` : ''),
     });
     b.append(badge, name, meta);
     b.addEventListener('click', () => start(t));
@@ -113,9 +126,9 @@ function renderRounds(list, finalView = false) {
     const li = document.createElement('li');
     li.className = (r.done ? 'done ' : '') + (i === g.index && !finalView ? 'now' : '');
     const n = Object.assign(document.createElement('span'), { className: 'n', textContent: i + 1 });
-    const badge = Object.assign(document.createElement('span'), { className: `badge ${r.song.difficulty}` });
-    badge.append(r.song.difficulty, ' ');
-    badge.append(Object.assign(document.createElement('span'), { className: 'genre', textContent: `· ${r.song.genre}` }));
+    const badge = Object.assign(document.createElement('span'), { className: `badge ${r.slot.difficulty}` });
+    badge.append(r.slot.difficulty, ' ');
+    badge.append(Object.assign(document.createElement('span'), { className: 'genre', textContent: `· ${r.slot.genre}` }));
     const name = Object.assign(document.createElement('span'), {
       className: 'name',
       textContent: r.done ? `${r.song.title} — ${r.song.artist}` : '???',
@@ -145,13 +158,15 @@ function setBusy(busy) {
 function start(track) {
   ctx ??= new (window.AudioContext || window.webkitAudioContext)();
   ctx.resume();
-  const songs = track === MIXER ? buildMixer(TRACKS) : buildRounds(track);
+  const slots = track === MIXER ? buildMixer(TRACKS) : track.custom ? customRounds(track.custom) : buildRounds(track);
   g = {
-    track, index: -1, attempt: 0, total: 0, revealed: false,
-    used: new Set(songs.map(key)),
-    rounds: songs.map((song) => ({ song, done: false, points: 0 })),
+    track, index: -1, attempt: 0, total: 0, revealed: false, custom: !!track.custom,
+    usedIds: new Set(),
+    usedArtists: new Set(slots.map((s) => norm(s.artist))),
+    rounds: slots.map((slot) => ({ slot, done: false, points: 0 })),
   };
   $('game-title').textContent = track.name;
+  $('song-list').replaceChildren();
   show('game');
   nextRound();
 }
@@ -190,7 +205,7 @@ async function load() {
     return;
   }
   if (stale()) return;
-  renderRounds($('rounds')); // the song may have been swapped for an alternate
+  renderRounds($('rounds')); // the artist may have been swapped for an alternate
   setBusy(false);
   setStatus('Press play, then guess.');
   play();
@@ -278,6 +293,49 @@ function finish() {
   show('results');
 }
 
+// ---------- any artist ----------
+async function playArtist(e) {
+  e.preventDefault();
+  const name = $('artist-input').value.trim();
+  const msg = $('artist-msg');
+  if (name.length < 2) return;
+  const btn = $('artist-btn');
+  btn.disabled = true;
+  msg.textContent = 'Looking up songs…';
+  try {
+    const songs = cleanPool(await pool(name, 100), name, 'custom');
+    if (songs.length < ROUNDS_PER_TRACK) {
+      msg.textContent = `Only ${songs.length} playable song${songs.length === 1 ? '' : 's'} found for "${name}". Check the spelling or try another artist.`;
+      return;
+    }
+    // collaborations ("X & Y") show up in the pool, so the shortest credit near the top is the artist's own name
+    const display = songs.slice(0, 10).map((s) => s.artistName).sort((a, b) => a.length - b.length)[0];
+    msg.textContent = '';
+    start({ id: `artist:${norm(name)}`, name: display, genre: 'Any artist', difficulty: 'custom', custom: name });
+  } catch {
+    msg.textContent = 'Network problem while searching. Try again.';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ---------- autocomplete: searches the whole iTunes catalogue as you type ----------
+let suggestTimer, suggestCtl;
+$('guess').addEventListener('input', () => {
+  clearTimeout(suggestTimer);
+  const term = $('guess').value.trim();
+  if (term.length < 2 || term.includes(' — ')) return; // " — " means an option was just picked
+  suggestTimer = setTimeout(async () => {
+    suggestCtl?.abort();
+    suggestCtl = new AbortController();
+    try {
+      const res = await itunes(term, { limit: 20, signal: suggestCtl.signal });
+      const values = new Set(res.filter((r) => r.trackName).map((r) => `${r.trackName} — ${r.artistName}`));
+      $('song-list').replaceChildren(...[...values].map(option));
+    } catch { /* aborted or rate-limited: keep the previous suggestions */ }
+  }, 300);
+});
+
 // ---------- events ----------
 $('play').addEventListener('click', play);
 $('retry').addEventListener('click', load);
@@ -290,14 +348,10 @@ $('guess-form').addEventListener('submit', (e) => {
   const r = g.rounds[g.index];
   isCorrect(guess, r.song) ? reveal(true) : miss('Not it.');
 });
+$('artist-form').addEventListener('submit', playArtist);
 const home = () => { stop(); g = null; show('home'); renderHome(); };
 $('home-btn').addEventListener('click', home);
 $('back').addEventListener('click', home);
 $('again').addEventListener('click', () => start(g.track));
-
-// datalist spans every track so the options never hint at the answer's genre
-$('song-list').replaceChildren(...[...new Set(TRACKS.flatMap((t) => t.songs.map(([a, b]) => `${a} — ${b}`)))]
-  .sort((a, b) => norm(a).localeCompare(norm(b)))
-  .map((v) => Object.assign(document.createElement('option'), { value: v })));
 
 renderHome();

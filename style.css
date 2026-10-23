@@ -89,8 +89,8 @@ h1 em { color: var(--accent); font-style: normal; }
 .status { text-align: center; min-height: 1.5em; color: var(--muted); margin-bottom: 16px; }
 .status.good { color: var(--good); } .status.bad { color: var(--bad); }
 
-#guess-form label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
-#guess-form .row { display: flex; gap: 8px; }
+#guess-form label, #artist-form label { font-size: 13px; color: var(--muted); display: block; margin-bottom: 6px; }
+#guess-form .row, #artist-form .row { display: flex; gap: 8px; }
 input {
   flex: 1; min-width: 0; font: inherit; color: var(--text); background: var(--panel);
   border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px;
@@ -140,3 +140,6 @@ input:focus { border-color: var(--mix); outline: none; }
 }
 @media print { .top, #guess-form, .player { display: none; } body { background: #fff; color: #000; } }
 .btn-link { display: inline-block; text-decoration: none; }
+.artist { margin-top: 28px; }
+.artist .muted { font-size: 14px; margin-top: 8px; min-height: 1.5em; }
+.custom { color: var(--mix); }

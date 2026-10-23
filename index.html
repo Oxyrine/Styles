@@ -27,9 +27,19 @@
     <!-- Track picker -->
     <section id="view-home" aria-labelledby="home-title">
       <h1 id="home-title">Name that song<br>in a <em>split second</em>.</h1>
-      <p class="lede">You hear 0.1 seconds. Miss, and you hear a bit more. Seven clips, then the answer is revealed.</p>
+      <p class="lede">You hear 0.1 seconds. Miss, and you hear a bit more. Seven clips, then the answer is revealed. Pick a genre, mix them all, or type any artist.</p>
       <div id="tracks" class="grid" role="list"></div>
-      <p class="fine">Song previews come from the iTunes Search API. Nothing is stored except your best scores, in this browser.</p>
+
+      <form id="artist-form" class="artist" autocomplete="off">
+        <label for="artist-input">Or play any artist, with every song they have</label>
+        <div class="row">
+          <input id="artist-input" placeholder="e.g. Coldplay, Anuv Jain, Kendrick Lamar" spellcheck="false" maxlength="60">
+          <button id="artist-btn" class="primary" type="submit">Play</button>
+        </div>
+        <p id="artist-msg" class="muted" role="status" aria-live="polite"></p>
+      </form>
+
+      <p class="fine">Songs and 30-second previews come from the iTunes Search API, the full catalogue. Nothing is stored except your best scores, in this browser.</p>
     </section>
 
     <!-- Game -->
