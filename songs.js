@@ -8,18 +8,18 @@ export const TRACKS = [
   ]},
   { id: 'bollywood', name: 'Bollywood Blockbusters', genre: 'Bollywood', difficulty: 'easy', artists: [
     'Arijit Singh', 'Atif Aslam', 'Shreya Ghoshal', 'Sonu Nigam', 'Badshah', 'Neha Kakkar', 'A. R. Rahman', 'Kishore Kumar',
-    'Lata Mangeshkar', 'Mohammed Rafi', 'Armaan Malik', 'Jubin Nautiyal', 'Sunidhi Chauhan', 'Yo Yo Honey Singh', 'Pritam',
-    'Vishal-Shekhar', 'Shankar-Ehsaan-Loy', 'Diljit Dosanjh', 'Darshan Raval', 'B Praak', 'Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Mika Singh', 'Sachin-Jigar',
+    'Lata Mangeshkar', 'Armaan Malik', 'Jubin Nautiyal', 'Sunidhi Chauhan', 'Yo Yo Honey Singh', 'Pritam',
+    'Shankar-Ehsaan-Loy', 'Diljit Dosanjh', 'Darshan Raval', 'B Praak', 'Kumar Sanu', 'Udit Narayan', 'Alka Yagnik', 'Mika Singh', 'Sachin-Jigar',
   ]},
   { id: 'rock', name: 'Rock Classics', genre: 'Rock', difficulty: 'medium', artists: [
     'Queen', 'Led Zeppelin', 'Pink Floyd', 'The Beatles', 'The Rolling Stones', 'AC/DC', 'Nirvana', "Guns N' Roses", 'Metallica',
     'Aerosmith', 'U2', 'Foo Fighters', 'Red Hot Chili Peppers', 'Eagles', 'Bon Jovi', 'Fleetwood Mac', 'Deep Purple', 'The Who',
-    'Black Sabbath', 'Van Halen', 'Green Day', 'Radiohead', 'Linkin Park', 'Pearl Jam', 'The Doors', 'Journey', 'Dire Straits',
+    'Black Sabbath', 'Van Halen', 'Green Day', 'Radiohead', 'Linkin Park', 'Pearl Jam', 'The Doors', 'Dire Straits',
     'Creedence Clearwater Revival', 'Def Leppard',
   ]},
   { id: 'hiphop', name: 'Hip-Hop', genre: 'Hip-Hop', difficulty: 'medium', artists: [
     'Eminem', 'Kendrick Lamar', 'Drake', 'Kanye West', 'JAY-Z', '50 Cent', 'Travis Scott', 'Post Malone', 'Nas', 'Snoop Dogg',
-    'Dr. Dre', '2Pac', 'The Notorious B.I.G.', 'J. Cole', 'Lil Wayne', 'Future', 'Cardi B', 'Nicki Minaj', 'Tyler, The Creator',
+    'Dr. Dre', '2Pac', 'The Notorious B.I.G.', 'J. Cole', 'Lil Wayne', 'Cardi B', 'Nicki Minaj', 'Tyler, The Creator',
     'OutKast', 'Run-D.M.C.', 'Wu-Tang Clan', 'Juice WRLD', 'Lil Uzi Vert', 'Migos', 'Megan Thee Stallion', 'Ice Cube', 'Public Enemy',
   ]},
   { id: '2000s', name: '2000s Throwbacks', genre: '2000s', difficulty: 'medium', artists: [
