@@ -95,7 +95,6 @@ function renderHome() {
   for (const t of [MIXER, ...TRACKS]) {
     const b = document.createElement('button');
     b.type = 'button';
-    b.setAttribute('role', 'listitem');
     b.className = 'card' + (t === MIXER ? ' mixer' : '');
     const badge = Object.assign(document.createElement('span'), {
       className: `badge ${t.difficulty}`,
@@ -105,9 +104,28 @@ function renderHome() {
     const meta = Object.assign(document.createElement('small'), {
       textContent: (t === MIXER ? '12 rounds, every genre' : `${t.artists.length} artists, every song they have`) + (getBest(t.id) ? ` · best ${getBest(t.id)}` : ''),
     });
-    b.append(badge, name, meta);
+    const arrow = Object.assign(document.createElement('span'), { className: 'track-arrow', textContent: '↗' });
+    arrow.setAttribute('aria-hidden', 'true');
+    b.append(name, badge, meta, arrow);
+    if (t === MIXER) {
+      const record = document.createElement('span');
+      record.className = 'record';
+      record.setAttribute('aria-hidden', 'true');
+      record.innerHTML = '<svg viewBox="0 0 280 280"><circle cx="140" cy="140" r="137" fill="currentColor"/><g fill="none" stroke="#42433f" stroke-width="1"><circle cx="140" cy="140" r="123"/><circle cx="140" cy="140" r="114"/><circle cx="140" cy="140" r="105"/><circle cx="140" cy="140" r="96"/><circle cx="140" cy="140" r="87"/><circle cx="140" cy="140" r="78"/></g><circle cx="140" cy="140" r="63" fill="#f5b7c5"/><circle cx="140" cy="140" r="7" fill="#20221f"/></svg>';
+      const label = Object.assign(document.createElement('span'), { className: 'record-label', textContent: '0.1s' });
+      record.append(label);
+      const cta = Object.assign(document.createElement('span'), { className: 'mixer-cta', textContent: 'Play the Mixer' });
+      b.prepend(record);
+      b.append(cta);
+    }
     b.addEventListener('click', () => start(t));
-    box.append(b);
+    if (t === MIXER) $('featured-track').replaceChildren(b);
+    else {
+      const item = document.createElement('div');
+      item.setAttribute('role', 'listitem');
+      item.append(b);
+      box.append(item);
+    }
   }
 }
 
@@ -135,7 +153,7 @@ function renderRounds(list, finalView = false) {
     });
     const pts = Object.assign(document.createElement('span'), {
       className: 'pts ' + (r.done ? (r.points ? 'good' : 'bad') : ''),
-      textContent: r.done ? (r.points ? `+${r.points}` : '✗') : '',
+      textContent: r.done ? (r.points ? `+${r.points}` : '0') : '',
     });
     li.append(n, badge, name, pts);
     return li;
@@ -197,6 +215,7 @@ async function load() {
     await prepare(i);
   } catch (e) {
     if (stale()) return;
+    $('play').classList.remove('loading');
     $('error-msg').textContent = e instanceof NotFound
       ? 'Could not find a playable clip for this round.'
       : 'Network problem while loading the clip. Check your connection and try again.';
