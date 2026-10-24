@@ -65,4 +65,19 @@ buf.fill(0.5, 400);
 assert.ok(Math.abs(firstLoud(buf, sr) - 0.4) <= 0.05);
 assert.equal(firstLoud(new Float32Array(sr), sr), 0);
 
+// catalog (built by build-catalog.mjs): every curated artist has a file the app can play 8+ rounds from
+import { existsSync, readFileSync } from 'node:fs';
+if (existsSync('catalog/_meta.json')) {
+  const thin = [];
+  for (const a of new Set(TRACKS.flatMap((t) => t.artists))) {
+    const f = `catalog/${norm(a)}.json`;
+    if (!existsSync(f)) { thin.push(`${a} (no file; the app will use live iTunes)`); continue; }
+    const songs = JSON.parse(readFileSync(f, 'utf8'));
+    assert.ok(songs.length >= ROUNDS_PER_TRACK, `${a} has only ${songs.length} songs`);
+    assert.ok(songs.every((s) => s.trackId && s.trackName && s.previewUrl && s.artworkUrl100 && s.trackViewUrl), `${a} has incomplete rows`);
+    assert.equal(cleanPool(songs, a, 'custom').length, songs.length, `${a} file is not pre-cleaned`);
+  }
+  if (thin.length) console.log('catalog gaps:', thin.join('; '));
+}
+
 console.log('check.mjs: all assertions passed');

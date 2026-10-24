@@ -28,12 +28,24 @@ async function itunes(term, { limit = 50, attribute, signal } = {}) {
   return (await res.json()).results;
 }
 
-// An artist's songs, most popular first. Cached so repeat rounds and the artist box don't re-hit iTunes (~20 req/min limit).
+// Curated artists ship as static files (see build-catalog.mjs), so a round costs one small CDN read, not an iTunes search.
+async function fromCatalog(artist) {
+  try {
+    const res = await fetch(`catalog/${norm(artist)}.json`);
+    if (!res.ok) return null;
+    const songs = await res.json();
+    songs.fromCatalog = true;
+    return songs;
+  } catch { return null; }
+}
+
+// An artist's songs, most popular first: catalog if we have them, live iTunes otherwise (any-artist box).
+// Cached so repeat rounds don't refetch. `live` skips the catalog, used when its stored preview links have gone stale.
 const pools = new Map();
-function pool(artist, limit = 50) {
-  const k = `${norm(artist)}:${limit}`;
+function pool(artist, limit = 50, live = false) {
+  const k = `${norm(artist)}:${limit}:${live}`;
   if (!pools.has(k)) {
-    const p = itunes(artist, { limit, attribute: 'artistTerm' });
+    const p = (async () => (!live && await fromCatalog(artist)) || itunes(artist, { limit, attribute: 'artistTerm' }))();
     p.catch(() => pools.delete(k));
     pools.set(k, p);
   }
@@ -54,9 +66,9 @@ function prepare(i) {
   const my = g, r = my.rounds[i];
   if (r.promise) return r.promise;
   r.promise = (async () => {
-    let slot = r.slot;
+    let slot = r.slot, live = false;
     for (let swaps = 0; ; swaps++) {
-      const results = await pool(slot.artist, my.custom ? 100 : 50);
+      const results = await pool(slot.artist, my.custom ? 100 : 50, live);
       const fresh = shuffle(cleanPool(results, slot.artist, slot.difficulty).filter((x) => !my.usedIds.has(x.trackId)));
       let err;
       for (const hit of fresh.slice(0, 3)) {
@@ -70,11 +82,16 @@ function prepare(i) {
         r.offset = firstLoud(r.buffer.getChannelData(0), r.buffer.sampleRate);
         return r;
       }
-      if (fresh.length) throw err; // there were songs, but every download failed: a network problem
+      if (fresh.length) {
+        // songs existed but every download failed: stale catalog links get one live retry, otherwise it's the network
+        if (results.fromCatalog && !live) { live = true; continue; }
+        throw err;
+      }
       if (my.custom || swaps >= 6) throw new NotFound(slot.artist);
       my.usedArtists.add(norm(slot.artist));
       slot = alternates(TRACKS, slot, my.usedArtists)[0];
       if (!slot) throw new NotFound();
+      live = false;
     }
   })();
   r.promise.catch(() => { r.promise = null; }); // allow Retry
