@@ -5,7 +5,11 @@ export const LADDER = [0.1, 0.5, 1, 2, 4, 8, 15]; // seconds revealed per attemp
 export const ROUNDS_PER_TRACK = 8;
 export const MIXER_PER_DIFFICULTY = 4;
 // iTunes returns an artist's songs most-popular first, so a rank window is the difficulty lever.
-export const DEPTH = { easy: [0, 12], medium: [0, 30], hard: [12, 60], custom: [0, 60] };
+export const DEPTH = {
+  easy: [0, 12], medium: [0, 30], hard: [12, 60], custom: [0, 60],
+  // genre climbs: same artists all run, so the rank windows stop overlapping and the ramp is felt
+  'climb-easy': [0, 8], 'climb-medium': [8, 24], 'climb-hard': [24, 60],
+};
 
 export const norm = (s) =>
   String(s)
@@ -73,10 +77,17 @@ export function buildMixer(tracks, rng = Math.random) {
   return rounds;
 }
 
-// If an artist can't be served, swap in an unused artist of the same difficulty.
+// One genre, 4 easy -> 4 medium -> 4 hard: the same kind of artists, dug progressively deeper into their catalogues.
+export function buildClimb(track, rng = Math.random) {
+  const artists = shuffle(track.artists, rng);
+  return DIFFICULTIES.flatMap((d, step) => artists.slice(step * MIXER_PER_DIFFICULTY, (step + 1) * MIXER_PER_DIFFICULTY)
+    .map((a) => ({ artist: a, genre: track.genre, difficulty: d, depth: `climb-${d}`, climb: true })));
+}
+
+// If an artist can't be served, swap in an unused artist: same genre for a climb, otherwise same difficulty.
 export function alternates(tracks, round, usedArtists, rng = Math.random) {
-  const all = tracks.filter((t) => t.difficulty === round.difficulty)
-    .flatMap((t) => t.artists.map((a) => slot(t, a)));
+  const all = tracks.filter((t) => (round.climb ? t.genre === round.genre : t.difficulty === round.difficulty))
+    .flatMap((t) => t.artists.map((a) => (round.climb ? { ...round, artist: a } : slot(t, a)))); // a climb swap keeps its step and depth
   return shuffle(all, rng).filter((s) => !usedArtists.has(norm(s.artist)));
 }
 

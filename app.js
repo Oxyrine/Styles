@@ -1,10 +1,12 @@
 import { TRACKS } from './songs.js';
-import { LADDER, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, alternates, score, firstLoud, shuffle } from './game.js';
+import { LADDER, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, buildClimb, alternates, score, firstLoud, shuffle } from './game.js';
 
 const $ = (id) => document.getElementById(id);
 const MIXER = { id: 'mixer', name: 'The Mixer', genre: 'All genres', difficulty: 'mix' };
 // ponytail: fixed storefront; the India store carried the same or more songs than the US one in every artist tried. Make it a setting if a region's catalogue matters.
 const STORE = 'IN';
+// One climb per genre: 12 rounds that start easy and end hard inside that genre.
+const CLIMBS = TRACKS.map((t) => ({ id: `climb:${t.id}`, name: `${t.genre} Climb`, genre: t.genre, difficulty: 'mix', climbOf: t }));
 const fmt = (s) => `${s}s`;
 const option = (value) => Object.assign(document.createElement('option'), { value });
 
@@ -69,7 +71,7 @@ function prepare(i) {
     let slot = r.slot, live = false;
     for (let swaps = 0; ; swaps++) {
       const results = await pool(slot.artist, my.custom ? 100 : 50, live);
-      const fresh = shuffle(cleanPool(results, slot.artist, slot.difficulty).filter((x) => !my.usedIds.has(x.trackId)));
+      const fresh = shuffle(cleanPool(results, slot.artist, slot.depth || slot.difficulty).filter((x) => !my.usedIds.has(x.trackId)));
       let err;
       for (const hit of fresh.slice(0, 3)) {
         try {
@@ -109,17 +111,19 @@ function show(view) {
 function renderHome() {
   const box = $('tracks');
   box.replaceChildren();
-  for (const t of [MIXER, ...TRACKS]) {
+  $('climbs').replaceChildren();
+  for (const t of [MIXER, ...TRACKS, ...CLIMBS]) {
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'card' + (t === MIXER ? ' mixer' : '');
+    const ramp = t === MIXER || t.climbOf;
     const badge = Object.assign(document.createElement('span'), {
       className: `badge ${t.difficulty}`,
-      textContent: t === MIXER ? 'easy → hard' : t.difficulty,
+      textContent: ramp ? 'easy → hard' : t.difficulty,
     });
     const name = Object.assign(document.createElement('strong'), { textContent: t.name });
     const meta = Object.assign(document.createElement('small'), {
-      textContent: (t === MIXER ? '12 rounds, every genre' : `${t.artists.length} artists, every song they have`) + (getBest(t.id) ? ` · best ${getBest(t.id)}` : ''),
+      textContent: (t === MIXER ? '12 rounds, every genre' : t.climbOf ? `12 rounds, all ${t.genre}, getting harder` : `${t.artists.length} artists, every song they have`) + (getBest(t.id) ? ` · best ${getBest(t.id)}` : ''),
     });
     const arrow = Object.assign(document.createElement('span'), { className: 'track-arrow', textContent: '↗' });
     arrow.setAttribute('aria-hidden', 'true');
@@ -141,7 +145,7 @@ function renderHome() {
       const item = document.createElement('div');
       item.setAttribute('role', 'listitem');
       item.append(b);
-      box.append(item);
+      (t.climbOf ? $('climbs') : box).append(item);
     }
   }
 }
@@ -193,7 +197,7 @@ function setBusy(busy) {
 function start(track) {
   ctx ??= new (window.AudioContext || window.webkitAudioContext)();
   ctx.resume();
-  const slots = track === MIXER ? buildMixer(TRACKS) : track.custom ? customRounds(track.custom) : buildRounds(track);
+  const slots = track === MIXER ? buildMixer(TRACKS) : track.climbOf ? buildClimb(track.climbOf) : track.custom ? customRounds(track.custom) : buildRounds(track);
   g = {
     track, index: -1, attempt: 0, total: 0, revealed: false, custom: !!track.custom,
     usedIds: new Set(),

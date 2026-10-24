@@ -1,7 +1,7 @@
 // Run: node check.mjs  (exits non-zero if the game logic breaks)
 import assert from 'node:assert/strict';
 import { TRACKS, DIFFICULTIES } from './songs.js';
-import { LADDER, MIXER_PER_DIFFICULTY, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, alternates, score, firstLoud } from './game.js';
+import { LADDER, MIXER_PER_DIFFICULTY, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, buildClimb, alternates, score, firstLoud } from './game.js';
 
 // norm / isCorrect
 assert.equal(norm('Beyoncé — Crazy in Love (Remastered)'), norm('Beyonce — Crazy in Love'));
@@ -58,6 +58,22 @@ for (let n = 0; n < 50; n++) {
 }
 const alts = alternates(TRACKS, { difficulty: 'hard' }, new Set([norm('Daft Punk')]));
 assert.ok(alts.length > 0 && alts.every((s) => s.difficulty === 'hard' && s.artist !== 'Daft Punk'));
+
+// climb: one genre, 4 easy -> 4 medium -> 4 hard, distinct artists, rank windows that don't overlap
+for (const t of TRACKS) {
+  const c = buildClimb(t);
+  assert.equal(c.length, DIFFICULTIES.length * MIXER_PER_DIFFICULTY, t.id);
+  assert.deepEqual(c.map((s) => s.difficulty), DIFFICULTIES.flatMap((d) => Array(MIXER_PER_DIFFICULTY).fill(d)));
+  assert.ok(c.every((s) => s.genre === t.genre && s.climb && s.depth === `climb-${s.difficulty}` && t.artists.includes(s.artist)));
+  assert.equal(new Set(c.map((s) => s.artist)).size, c.length);
+}
+const ranked = Array.from({ length: 70 }, (_, i) => mk(`Song ${i}`));
+const slice = (d) => cleanPool(ranked, 'Queen', d).map((r) => +r.trackName.slice(5));
+assert.deepEqual([slice('climb-easy')[0], slice('climb-easy').at(-1)], [0, 7]);
+assert.deepEqual([slice('climb-medium')[0], slice('climb-medium').at(-1)], [8, 23]);
+assert.deepEqual([slice('climb-hard')[0], slice('climb-hard').at(-1)], [24, 59]);
+const swap = alternates(TRACKS, buildClimb(TRACKS[2])[5], new Set())[0]; // a medium-step climb round in Rock
+assert.ok(swap.climb && swap.difficulty === 'medium' && swap.depth === 'climb-medium' && TRACKS[2].artists.includes(swap.artist));
 
 // firstLoud skips leading silence
 const sr = 1000, buf = new Float32Array(sr).fill(0);
