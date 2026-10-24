@@ -131,7 +131,9 @@ Primary actions use ink with warm-paper text and a minimum height of 48px. Secon
 
 ### Fields
 
-Inputs use warm paper, a paper-edge border, square corners, and a minimum height of 54px. Focus uses an ink outline. Search suggestions use the browser's native datalist. Keep explicit labels visible.
+Inputs use warm paper, a paper-edge border, square corners, and a minimum height of 54px. Focus uses an ink outline. Song suggestions use an ink listbox directly below the guess field, with pink active rows and separate title and artist lines. The input retains focus; arrow keys navigate, Enter selects, and Escape dismisses. Pointer selection fills the field without submitting. Keep explicit labels visible.
+
+The suggestion panel enters over 180ms with a small upward offset; its six rows stagger by 20ms, capped at 100ms. Keyboard navigation and reduced-motion preferences suppress those animations. Suggestions search the bundled catalogue first and supplement it with live iTunes results; failed live requests retain local matches and manual guessing.
 
 ### Track rows and Mixer
 

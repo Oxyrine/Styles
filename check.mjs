@@ -1,5 +1,6 @@
 // Run: node check.mjs  (exits non-zero if the game logic breaks)
 import assert from 'node:assert/strict';
+import { searchSongs } from './suggestion-search.js';
 import { TRACKS, DIFFICULTIES } from './songs.js';
 import { LADDER, MIXER_PER_DIFFICULTY, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, buildClimb, alternates, score, firstLoud } from './game.js';
 
@@ -96,4 +97,19 @@ if (existsSync('catalog/_meta.json')) {
   if (thin.length) console.log('catalog gaps:', thin.join('; '));
 }
 
+// Suggestions match titles and artists, rank exact titles first, and collapse release variants.
+const searchFixture = [
+  { trackName: 'Love Story', artistName: 'Taylor Swift' },
+  { trackName: 'Love Story (Remastered)', artistName: 'Taylor Swift' },
+  { trackName: 'Lover', artistName: 'Taylor Swift' },
+  { trackName: 'Crazy in Love', artistName: 'Beyoncé' },
+  { trackName: '<script>Love</script>', artistName: 'A & B' },
+];
+assert.equal(searchSongs(searchFixture, 'love story')[0].trackName, 'Love Story');
+assert.equal(searchSongs(searchFixture, 'love story').length, 1);
+assert.equal(searchSongs(searchFixture, 'taylor love').length, 2);
+assert.equal(searchSongs(searchFixture, 'beyonce')[0].artistName, 'Beyoncé');
+assert.equal(searchSongs(searchFixture, 'love', 2).length, 2);
+assert.deepEqual(searchSongs(searchFixture, 'unmatched'), []);
+assert.deepEqual(searchSongs(searchFixture, ' '), []);
 console.log('check.mjs: all assertions passed');

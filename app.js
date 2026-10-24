@@ -1,4 +1,5 @@
 import { TRACKS } from './songs.js';
+import { searchSongs } from './suggestion-search.js';
 import { LADDER, ROUNDS_PER_TRACK, norm, isCorrect, cleanPool, buildRounds, customRounds, buildMixer, buildClimb, alternates, score, firstLoud, shuffle } from './game.js';
 
 const $ = (id) => document.getElementById(id);
@@ -8,7 +9,6 @@ const STORE = 'IN';
 // One climb per genre: 12 rounds that start easy and end hard inside that genre.
 const CLIMBS = TRACKS.map((t) => ({ id: `climb:${t.id}`, name: `${t.genre} Climb`, genre: t.genre, difficulty: 'mix', climbOf: t }));
 const fmt = (s) => `${s}s`;
-const option = (value) => Object.assign(document.createElement('option'), { value });
 
 class NotFound extends Error {}
 
@@ -48,6 +48,7 @@ function pool(artist, limit = 50, live = false) {
   const k = `${norm(artist)}:${limit}:${live}`;
   if (!pools.has(k)) {
     const p = (async () => (!live && await fromCatalog(artist)) || itunes(artist, { limit, attribute: 'artistTerm' }))();
+    p.then(rememberSongs, () => {});
     p.catch(() => pools.delete(k));
     pools.set(k, p);
   }
@@ -102,6 +103,7 @@ function prepare(i) {
 
 // ---------- views ----------
 function show(view) {
+  closeSuggestions();
   for (const v of ['home', 'game', 'results']) $(`view-${v}`).hidden = v !== view;
   $('home-btn').hidden = view === 'home';
   $('main').focus({ preventScroll: true });
@@ -188,6 +190,7 @@ function setStatus(text, cls = '') {
 }
 
 function setBusy(busy) {
+  if (busy) closeSuggestions();
   $('play').disabled = busy;
   $('play').classList.toggle('loading', busy);
   for (const id of ['guess', 'guess-btn', 'skip']) $(id).disabled = busy || g.revealed;
@@ -205,7 +208,7 @@ function start(track) {
     rounds: slots.map((slot) => ({ slot, done: false, points: 0 })),
   };
   $('game-title').textContent = track.name;
-  $('song-list').replaceChildren();
+  loadSongIndex();
   show('game');
   nextRound();
 }
@@ -219,6 +222,7 @@ async function nextRound() {
   $('reveal').hidden = true;
   $('error').hidden = true;
   $('guess').value = '';
+  $('suggestion-hint').textContent = 'Type at least 2 letters. Choose a match or guess your own title.';
   $('round-label').textContent = `Round ${g.index + 1} of ${g.rounds.length}`;
   $('score').textContent = g.total;
   renderLadder();
@@ -282,16 +286,19 @@ function play() {
 }
 
 function miss(message) {
+  closeSuggestions();
   g.attempt++;
   if (g.attempt >= LADDER.length) return reveal(false);
   renderLadder();
   setStatus(`${message} Now ${fmt(LADDER[g.attempt])} of the song.`, 'bad');
   play();
   $('guess').value = '';
+  $('suggestion-hint').textContent = 'Type at least 2 letters. Choose a match or guess your own title.';
   $('guess').focus({ preventScroll: true });
 }
 
 function reveal(correct) {
+  closeSuggestions();
   stop();
   const r = g.rounds[g.index];
   g.revealed = true;
@@ -359,21 +366,141 @@ async function playArtist(e) {
   }
 }
 
-// ---------- autocomplete: searches the whole iTunes catalogue as you type ----------
-let suggestTimer, suggestCtl;
-$('guess').addEventListener('input', () => {
+// ---------- suggestions: local catalogue first, live search for anything beyond it ----------
+const knownSongs = new Map();
+let songIndex = [], indexRequest, suggestTimer, suggestCtl, suggestionVersion = 0;
+let suggestions = [], activeSuggestion = -1, selectedValue = '';
+const guessInput = $('guess');
+
+function rememberSongs(songs) {
+  for (const song of songs) {
+    if (song.trackName && song.artistName) knownSongs.set(`${norm(song.trackName)}|${norm(song.artistName)}`, song);
+  }
+}
+
+function loadSongIndex() {
+  if (!indexRequest) {
+    indexRequest = fetch('catalog/_suggestions.json').then((res) => {
+      if (!res.ok) throw new Error('Song index unavailable');
+      return res.json();
+    }).then((songs) => { songIndex = songs; }).catch(() => { indexRequest = null; });
+  }
+  return indexRequest;
+}
+
+function closeSuggestions() {
   clearTimeout(suggestTimer);
-  const term = $('guess').value.trim();
-  if (term.length < 2 || term.includes(' — ')) return; // " — " means an option was just picked
+  suggestCtl?.abort();
+  suggestionVersion++;
+  $('suggestion-panel').hidden = true;
+  guessInput.setAttribute('aria-expanded', 'false');
+  guessInput.removeAttribute('aria-activedescendant');
+  activeSuggestion = -1;
+}
+
+function renderSuggestions(matches, message = '') {
+  const unchanged = matches.length === suggestions.length && matches.every((song, i) =>
+    song.trackName === suggestions[i].trackName && song.artistName === suggestions[i].artistName);
+  if (!$('suggestion-panel').hidden && (activeSuggestion >= 0 || unchanged)) {
+    $('suggestion-status').textContent = message || (matches.length ? 'Choose a match. Use ↑ ↓ and Enter on a keyboard.' : 'No matches yet. Try another title or artist.');
+    return;
+  }
+  suggestions = matches;
+  activeSuggestion = -1;
+  guessInput.removeAttribute('aria-activedescendant');
+  $('song-list').replaceChildren(...matches.map((song, i) => {
+    const item = document.createElement('li');
+    item.id = `suggestion-${i}`;
+    item.setAttribute('role', 'option');
+    item.setAttribute('aria-selected', 'false');
+    const title = Object.assign(document.createElement('strong'), { textContent: song.trackName });
+    const artist = Object.assign(document.createElement('span'), { className: 'suggestion-artist', textContent: song.artistName });
+    const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    icon.setAttribute('viewBox', '0 0 24 24');
+    icon.setAttribute('aria-hidden', 'true');
+    const path = document.createElementNS(icon.namespaceURI, 'path');
+    path.setAttribute('d', 'M5 12h14m-6-6 6 6-6 6');
+    icon.append(path);
+    item.append(title, artist, icon);
+    item.addEventListener('pointerdown', (e) => { if (e.pointerType === 'mouse') e.preventDefault(); });
+    item.addEventListener('click', () => chooseSuggestion(i));
+    return item;
+  }));
+  $('suggestion-count').textContent = matches.length ? `${matches.length} matches` : '';
+  $('suggestion-status').textContent = message || (matches.length ? 'Choose a match. Use ↑ ↓ and Enter on a keyboard.' : 'No matches yet. Try another title or artist.');
+  $('suggestion-panel').hidden = false;
+  guessInput.setAttribute('aria-expanded', 'true');
+}
+
+function chooseSuggestion(index, keyboard = false) {
+  const song = suggestions[index];
+  if (!song) return;
+  selectedValue = `${song.trackName} — ${song.artistName}`;
+  guessInput.value = selectedValue;
+  closeSuggestions();
+  guessInput.focus({ preventScroll: true });
+  $('suggestion-hint').textContent = 'Song selected. Press Guess when you’re ready.';
+  if (!keyboard && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    guessInput.animate([{ backgroundColor: '#f5b7c5' }, { backgroundColor: '#f5f3ed' }], { duration: 240, easing: 'ease-out' });
+  }
+}
+
+async function updateSuggestions() {
+  closeSuggestions();
+  const term = guessInput.value.trim();
+  if (term.length < 2 || guessInput.disabled || term === selectedValue) return;
+  const version = suggestionVersion;
+  const current = () => version === suggestionVersion && document.activeElement === guessInput && !guessInput.disabled;
+  $('suggestion-panel').classList.remove('keyboard-navigation');
+  renderSuggestions(searchSongs([...songIndex, ...knownSongs.values()], term), 'Searching songs…');
+  await loadSongIndex();
+  if (!current()) return;
+  const local = () => searchSongs([...songIndex, ...knownSongs.values()], term);
+  renderSuggestions(local());
   suggestTimer = setTimeout(async () => {
-    suggestCtl?.abort();
-    suggestCtl = new AbortController();
+    const controller = new AbortController();
+    suggestCtl = controller;
+    const timeout = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await itunes(term, { limit: 20, signal: suggestCtl.signal });
-      const values = new Set(res.filter((r) => r.trackName).map((r) => `${r.trackName} — ${r.artistName}`));
-      $('song-list').replaceChildren(...[...values].map(option));
-    } catch { /* aborted or rate-limited: keep the previous suggestions */ }
-  }, 300);
+      const results = await itunes(term, { limit: 20, signal: controller.signal });
+      if (!current()) return;
+      rememberSongs(results);
+      renderSuggestions(local());
+    } catch {
+      if (current() && !local().length) renderSuggestions([], 'Live search is unavailable. You can still type a title and press Guess.');
+    } finally { clearTimeout(timeout); }
+  }, 250);
+}
+
+guessInput.addEventListener('input', (e) => {
+  if (e.isComposing) return;
+  selectedValue = '';
+  $('suggestion-hint').textContent = 'Type at least 2 letters. Choose a match or guess your own title.';
+  updateSuggestions();
+});
+guessInput.addEventListener('focus', updateSuggestions);
+document.addEventListener('pointerdown', (e) => {
+  if (e.target !== guessInput && !$('suggestion-panel').contains(e.target)) closeSuggestions();
+});
+guessInput.addEventListener('keydown', (e) => {
+  if (e.isComposing) return;
+  if (e.key === 'Escape') { closeSuggestions(); return; }
+  if ($('suggestion-panel').hidden) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); updateSuggestions(); }
+    return;
+  }
+  if (e.key === 'Enter' && activeSuggestion >= 0) {
+    e.preventDefault();
+    chooseSuggestion(activeSuggestion, true);
+  } else if ((e.key === 'ArrowDown' || e.key === 'ArrowUp') && suggestions.length) {
+    e.preventDefault();
+    $('suggestion-panel').classList.add('keyboard-navigation');
+    activeSuggestion = (activeSuggestion + (e.key === 'ArrowDown' ? 1 : activeSuggestion < 0 ? 0 : -1) + suggestions.length) % suggestions.length;
+    [...$('song-list').children].forEach((item, i) => item.setAttribute('aria-selected', String(i === activeSuggestion)));
+    const item = $('song-list').children[activeSuggestion];
+    guessInput.setAttribute('aria-activedescendant', item.id);
+    item.scrollIntoView({ block: 'nearest', behavior: 'instant' });
+  } else if (e.key === 'Tab') closeSuggestions();
 });
 
 // ---------- events ----------

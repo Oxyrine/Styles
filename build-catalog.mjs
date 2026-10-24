@@ -33,3 +33,4 @@ for (const artist of artists) {
 }
 await writeFile('catalog/_meta.json', JSON.stringify({ builtAt: new Date().toISOString(), artists: artists.length - failed.length, songs }));
 console.log(`${artists.length - failed.length}/${artists.length} artists, ${songs} songs${failed.length ? `, missing: ${failed.join(', ')}` : ''}`);
+await import('./build-suggestions.mjs');

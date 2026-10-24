@@ -19,3 +19,53 @@ footer{padding-bottom:30px}#how-to{padding:48px 0}#how-to h2{font-size:26px}.ins
 
 .not-found-link{margin-top:28px}
 main:focus-visible{outline:none}.rounds li.now .n,.rounds li.now .badge,.rounds li.now .name{color:var(--text)}
+
+/* The song picker stays in the flow so it works above a mobile keyboard. */
+.suggestion-panel {
+  margin-top: 12px;
+  padding: 8px;
+  background: var(--text);
+  color: var(--bg);
+  animation: suggestions-in 180ms var(--ease);
+  transform-origin: top center;
+}
+.suggestion-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px 12px;
+  font-size: 13px;
+  color: var(--accent);
+}
+#song-list { list-style: none; margin: 0; padding: 0; max-height: 310px; overflow-y: auto; overscroll-behavior: contain; scrollbar-color: var(--accent) var(--text); }
+#song-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20px;
+  gap: 2px 16px;
+  padding: 12px;
+  min-height: 66px;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+  animation: suggestion-in 180ms var(--ease) both;
+}
+#song-list li:nth-child(2) { animation-delay: 20ms; }
+#song-list li:nth-child(3) { animation-delay: 40ms; }
+#song-list li:nth-child(4) { animation-delay: 60ms; }
+#song-list li:nth-child(5) { animation-delay: 80ms; }
+#song-list li:nth-child(6) { animation-delay: 100ms; }
+#song-list strong { font-size: 16px; font-weight: 500; line-height: 1.3; overflow-wrap: anywhere; }
+.suggestion-artist { grid-column: 1; font-size: 13px; color: #c4c7be; overflow-wrap: anywhere; }
+#song-list svg { grid-column: 2; grid-row: 1 / 3; align-self: center; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+#song-list li[aria-selected=true] { background: var(--accent); color: var(--text); }
+#song-list li[aria-selected=true] .suggestion-artist { color: var(--text); }
+#suggestion-status { padding: 10px 12px 6px; font-size: 13px; color: #c4c7be; }
+.suggestion-hint { margin-top: 10px; font-size: 13px; color: var(--muted); }
+.keyboard-navigation, .keyboard-navigation #song-list li { animation: none; transition: none; }
+@media (hover: hover) and (pointer: fine) {
+  #song-list li:hover { background: var(--accent); color: var(--text); }
+  #song-list li:hover .suggestion-artist { color: var(--text); }
+}
+@keyframes suggestions-in { from { opacity: .6; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@keyframes suggestion-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+@media (max-width: 650px) { #song-list { max-height: 240px; } #song-list li { min-height: 62px; } }
+@media (prefers-reduced-motion: reduce) { .suggestion-panel, #song-list li { animation: none; transition: none; } }

@@ -78,11 +78,16 @@
       <form id="guess-form" autocomplete="off">
         <label for="guess">Your guess</label>
         <div class="row">
-          <input id="guess" list="song-list" placeholder="Type a title, then pick it" spellcheck="false" disabled>
+          <input id="guess" role="combobox" aria-autocomplete="list" aria-controls="song-list" aria-expanded="false" aria-describedby="suggestion-hint" placeholder="Start typing a song or artist…" spellcheck="false" autocapitalize="none" disabled>
           <button id="guess-btn" class="primary" type="submit" disabled>Guess</button>
         </div>
+        <div id="suggestion-panel" class="suggestion-panel" hidden>
+          <div class="suggestion-heading"><span>Find your song</span><span id="suggestion-count"></span></div>
+          <ul id="song-list" role="listbox" aria-label="Song suggestions"></ul>
+          <p id="suggestion-status" role="status" aria-live="polite"></p>
+        </div>
+        <p id="suggestion-hint" class="suggestion-hint">Type at least 2 letters. Choose a match or guess your own title.</p>
         <button id="skip" class="ghost" type="button" disabled>Skip</button>
-        <datalist id="song-list"></datalist>
       </form>
 
       <div id="error" class="error" role="alert" hidden>
